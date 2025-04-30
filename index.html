@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Campus Map</title>
+    <meta charset="utf-8" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+    <style>
+        #map {
+            height: 100vh;
+        }
+        .label-icon {
+            font-size: 18px;
+            font-weight: bold;
+            color: #333;
+            text-shadow: 1px 1px 2px #fff;
+        }
+        .search-panel {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            background: white;
+            padding: 10px;
+            z-index: 1000;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+        }
+    </style>
+</head>
+<body>
+
+<div id="map"></div>
+
+<div class="search-panel">
+    <h3>Find your route</h3>
+    <label>From:</label><br>
+    <select id="from">
+        <option value="gym">Gym</option>
+        <option value="mabini">Mabini</option>
+        <option value="bonifacio">Bonifacio</option>
+        <option value="delpilar">Del Pilar</option>
+        <option value="rizal">Rizal</option>
+        <option value="garden">Centennial Garden</option>
+        <option value="entrance1">Entrance 1</option>
+        <option value="entrance2">Entrance 2</option>
+        <option value="parking1">Parking 1</option>
+        <option value="parking2">Parking 2</option>
+    </select><br><br>
+    <label>To:</label><br>
+    <select id="to">
+        <option value="gym">Gym</option>
+        <option value="mabini">Mabini</option>
+        <option value="bonifacio">Bonifacio</option>
+        <option value="delpilar">Del Pilar</option>
+        <option value="rizal">Rizal</option>
+        <option value="garden">Centennial Garden</option>
+        <option value="entrance1">Entrance 1</option>
+        <option value="entrance2">Entrance 2</option>
+        <option value="parking1">Parking 1</option>
+        <option value="parking2">Parking 2</option>
+    </select><br><br>
+    <button onclick="drawRoute()">Search Route</button>
+</div>
+
+<script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+<script>
+    // Initialize the map
+    const map = L.map('map', {
+        crs: L.CRS.Simple,
+        minZoom: -1
+    });
+
+    const bounds = [[0,0], [800,1000]]; // adjust based on your map image size
+    const image = L.imageOverlay('map campus.jpg', bounds).addTo(map);
+    map.fitBounds(bounds);
+
+    // Function to add labels
+    function addLabel(latlng, text) {
+        L.marker(latlng, {
+            icon: L.divIcon({
+                className: 'label-icon',
+                html: text,
+                iconSize: [90, 30],
+                iconAnchor: [50, 20]
+            })
+        }).addTo(map);
+    }
+
+    // Now, add building labels
+    addLabel([620, 580], "GYM");
+    addLabel([655, 775], "MABINI");
+    addLabel([400, 750], "BONIFACIO");
+    addLabel([200, 745], "DEL PILAR");
+    addLabel([290, 275], "RIZAL");
+    addLabel([380, 75], "CENTENNIAL GARDEN");
+    addLabel([340, 490], "(1)PARKING");
+    addLabel([285, 880], "(2)PARKING");
+    addLabel([10, 545], "(1)ENTRANCE");
+    addLabel([750, 640], "(2)ENTRANCE");
+
+ // Building positions
+ const locations = {
+        gym: [640, 550],
+        mabini: [675, 760],
+        bonifacio: [420, 750],
+        delpilar: [220, 745],
+        rizal: [310, 255],
+        garden: [400, 75],
+        entrance1: [30, 550],
+        entrance2: [770, 640],
+        parking1: [360, 490],
+        parking2: [300, 870]
+    };
+
+    for (const key in locations) {
+        L.marker(locations[key]).addTo(map).bindPopup(key.toUpperCase());
+    }
+
+    let routeLine; // to store the blue line
+
+    function drawRoute() {
+        const from = document.getElementById('from').value;
+        const to = document.getElementById('to').value;
+
+        if (from === to) {
+            alert('Please select two different locations.');
+            return;
+        }
+
+        if (routeLine) {
+            map.removeLayer(routeLine);
+        }
+
+        const path = [
+            locations[from],
+            locations[to]
+        ];
+
+        routeLine = L.polyline(path, {color: 'blue', weight: 5}).addTo(map);
+        map.fitBounds(routeLine.getBounds());
+    }
+
+    // Function to generate a zigzag path
+    function getZigzagPath(from, to) {
+        const fromCoords = locations[from];
+        const toCoords = locations[to];
+
+        const midPointX = (fromCoords[0] + toCoords[0]) / 2;
+        const midPointY = (fromCoords[1] + toCoords[1]) / 2;
+
+        // Create a zigzag path with multiple points
+        return [
+            fromCoords,
+            [midPointX, fromCoords[1]], // horizontal move
+            [midPointX, toCoords[1]], // vertical move
+            toCoords
+        ];
+    }
+
+    // Function to draw the route (updated to zigzag)
+    function drawRoute() {
+        const from = document.getElementById('from').value;
+        const to = document.getElementById('to').value;
+
+        if (from === to) {
+            alert('Please select two different locations.');
+            return;
+        }
+
+        if (routeLine) {
+            map.removeLayer(routeLine);
+        }
+
+        const zigzagPath = getZigzagPath(from, to);
+
+        routeLine = L.polyline(zigzagPath, {color: 'blue', weight: 5}).addTo(map);
+        map.fitBounds(routeLine.getBounds());
+    }
+</script>
+
+</body>
+</html>
