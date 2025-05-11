@@ -1,6 +1,6 @@
 <?php
 session_start();
-include 'db.php';
+include 'db.html';
 
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $username = $_POST['username'];
@@ -22,7 +22,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             $_SESSION['username'] = $username;
             $_SESSION['role'] = 'user';
 
-            header("Location: index.php");
+            header("Location: index.html");
             exit();
         } else {
             $message = "Registration failed.";
@@ -117,7 +117,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     </form>
 
     <div class="back-link">
-        <a href="index.php">← Back to Map</a>
+        <a href="index.html">← Back to Map</a>
     </div>
 </div>
 
