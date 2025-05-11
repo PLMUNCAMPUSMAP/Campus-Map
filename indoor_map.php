@@ -1,6 +1,6 @@
 <?php
 session_start();
-include 'db.php';
+include 'db.html';
 
 if (!isset($_SESSION['user_id'])) {
     die("Access denied. Please log in.");
