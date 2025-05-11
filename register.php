@@ -1,0 +1,125 @@
+<?php
+session_start();
+include 'db.php';
+
+if ($_SERVER["REQUEST_METHOD"] == "POST") {
+    $username = $_POST['username'];
+    $password = password_hash($_POST['password'], PASSWORD_DEFAULT);
+
+    $check = $conn->prepare("SELECT user_id FROM users WHERE username = ?");
+    $check->bind_param("s", $username);
+    $check->execute();
+    $check->store_result();
+
+    if ($check->num_rows > 0) {
+        $message = "Username already exists.";
+    } else {
+        $stmt = $conn->prepare("INSERT INTO users (username, password_hash, role) VALUES (?, ?, 'user')");
+        $stmt->bind_param("ss", $username, $password);
+
+        if ($stmt->execute()) {
+            $_SESSION['user_id'] = $stmt->insert_id;
+            $_SESSION['username'] = $username;
+            $_SESSION['role'] = 'user';
+
+            header("Location: index.php");
+            exit();
+        } else {
+            $message = "Registration failed.";
+        }
+    }
+}
+?>
+
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Register</title>
+    <style>
+        body {
+            font-family: monospace;
+            background: #f9f9f9;
+            margin: 0;
+            padding: 0;
+            font-size: 18px;
+        }
+        .container {
+            width: 100%;
+            max-width: 400px;
+            background: #fff;
+            padding: 24px;
+            margin: 60px auto;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+        }
+        h2 {
+            text-align: center;
+            margin-bottom: 12px;
+            margin-top: 12px;
+            color: #333;
+            font-family: monospace;
+        }
+        input[type="text"],
+        input[type="password"],
+        input[type="submit"] {
+            width: 100%;
+            padding: 12px;
+            margin: 10px 0;
+            font-size: 14px;
+            border: 1px solid #ccc;
+            border-radius: 6px;
+            box-sizing: border-box;
+            font-family: monospace;
+        }
+        input[type="submit"] {
+            background-color: #333;
+            color: #fff;
+            border: none;
+            cursor: pointer;
+        }
+        input[type="submit"]:hover {
+            background-color: #555;
+        }
+        .message {
+            text-align: center;
+            color: red;
+            margin-bottom: 12px;
+        }
+        .back-link {
+            text-align: center;
+            margin-top: 12px;
+            font-family: monospace;
+        }
+        .back-link a {
+            color: black;
+            text-decoration: none;
+            font-size: 14px;
+        }
+        .back-link a:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2>Register</h2>
+
+    <?php if (!empty($message)) : ?>
+        <div class="message"><?php echo $message; ?></div>
+    <?php endif; ?>
+
+    <form method="post">
+        <input type="text" name="username" placeholder="Username" required>
+        <input type="password" name="password" placeholder="Password" required>
+        <input type="submit" value="Register">
+    </form>
+
+    <div class="back-link">
+        <a href="index.php">← Back to Map</a>
+    </div>
+</div>
+
+</body>
+</html>

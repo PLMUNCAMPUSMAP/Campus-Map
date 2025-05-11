@@ -1,0 +1,173 @@
+<?php
+session_start();
+include 'db.php';
+
+// Check if logged in and if user is an admin
+if (!isset($_SESSION['user_id']) || $_SESSION['role'] != 'admin') {
+    echo "Access denied.";
+    exit();
+}
+
+// Promote user to admin
+if (isset($_GET['promote'])) {
+    $promote_id = intval($_GET['promote']);
+    $stmt = $conn->prepare("UPDATE users SET role = 'admin' WHERE user_id = ?");
+    $stmt->bind_param("i", $promote_id);
+    $stmt->execute();
+    echo "User promoted to admin.<br>";
+}
+
+// Delete user
+if (isset($_GET['delete'])) {
+    $delete_id = intval($_GET['delete']);
+    $stmt = $conn->prepare("DELETE FROM users WHERE user_id = ?");
+    $stmt->bind_param("i", $delete_id);
+    $stmt->execute();
+    echo "User deleted.<br>";
+}
+
+// Add user
+if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['add_user'])) {
+    $new_username = $_POST['new_username'];
+    $new_password = password_hash($_POST['new_password'], PASSWORD_DEFAULT);
+    $new_role = $_POST['new_role'];
+
+    // Check if username already exists
+    $stmt = $conn->prepare("SELECT user_id FROM users WHERE username = ?");
+    $stmt->bind_param("s", $new_username);
+    $stmt->execute();
+    $stmt->store_result();
+
+    if ($stmt->num_rows > 0) {
+        // Username already exists
+        echo "<script>alert('Username already exists.'); window.location.href='admin.php';</script>";
+        exit();
+    }
+
+    // If not, proceed to add user
+    $stmt = $conn->prepare("INSERT INTO users (username, password_hash, role) VALUES (?, ?, ?)");
+    $stmt->bind_param("sss", $new_username, $new_password, $new_role);
+    $stmt->execute();
+    echo "<script>alert('New user added successfully.'); window.location.href='admin.php';</script>";
+}
+
+
+// Fetch all users
+$result = $conn->query("SELECT user_id, username, role, created_at FROM users");
+?>
+
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Admin Panel</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            font-family: monospace;
+            background-color: #f4f4f4;
+            color: #333;
+        }
+        h2, h3 {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        table {
+            margin: 0 auto 30px;
+            border-collapse: collapse;
+            width: 90%;
+            max-width: 800px;
+            background: #fff;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+        }
+        th, td {
+            padding: 12px 16px;
+            border: 1px solid #ccc;
+            text-align: center;
+        }
+        th {
+            background: #333;
+            color: #fff;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        tr:nth-child(even) {
+            background: #f9f9f9;
+        }
+        tr:hover {
+            background: #eef;
+        }
+        a {
+            color: #007bff;
+            text-decoration: none;
+            margin: 0 5px;
+        }
+        a:hover {
+            text-decoration: underline;
+        }
+        form {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        input, select, button {
+            padding: 8px 12px;
+            margin: 5px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            font-family: monospace;
+        }
+        button {
+            background: #333;
+            color: #fff;
+            border: none;
+            cursor: pointer;
+        }
+        button:hover {
+            background: #555;
+        }
+        .logout-link {
+            display: block;
+            text-align: center;
+            margin-top: 20px;
+            color: #dc3545;
+        }
+    </style>
+</head>
+<body>
+
+<h2>User List</h2>
+
+<table>
+    <tr><th>ID</th><th>Username</th><th>Role</th><th>Registered</th><th>Actions</th></tr>
+    <?php while ($row = $result->fetch_assoc()): ?>
+        <tr>
+            <td><?= $row['user_id'] ?></td>
+            <td><?= htmlspecialchars($row['username']) ?></td>
+            <td><?= $row['role'] ?></td>
+            <td><?= $row['created_at'] ?></td>
+            <td>
+                <?php if ($row['role'] == 'user'): ?>
+                    <a href="admin.php?promote=<?= $row['user_id'] ?>">Promote</a> |
+                <?php endif; ?>
+                <a href="edit_user.php?edit=<?= $row['user_id'] ?>">Edit</a> |
+                <a href="admin.php?delete=<?= $row['user_id'] ?>" onclick="return confirm('Delete this user?')">Delete</a>
+            </td>
+        </tr>
+    <?php endwhile; ?>
+</table>
+
+<h3>Add New User</h3>
+<form method="POST">
+    <input type="text" name="new_username" placeholder="Username" required>
+    <input type="password" name="new_password" placeholder="Password" required>
+    <select name="new_role">
+        <option value="user">User</option>
+        <option value="admin">Admin</option>
+    </select>
+    <button type="submit" name="add_user">Add User</button>
+</form>
+
+<a class="logout-link" href="logout.php">Logout</a>
+
+</body>
+</html>

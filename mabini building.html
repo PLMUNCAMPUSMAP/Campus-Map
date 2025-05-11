@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Mabini Building</title>
+    <meta charset="utf-8" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+    <style>
+
+        #map {
+    width: 1500px;
+    height: 1000px;
+    margin: 20px auto;
+    border: 1px solid #ccc;
+}
+.label-icon {
+    font-size: 15px;
+    font-weight: bold;
+    font-family: monospace;
+    color: black;
+    background: transparent;
+    border: none;
+    padding: 0;
+    margin: 0;
+    text-shadow: 1px 1px 2px white;
+    line-height: 1.2;
+    white-space: nowrap;
+    text-align: center;
+    display: inline-block;
+   
+
+}
+.leaflet-div-icon {
+    background: transparent !important;
+    border: none !important;
+}
+.search-panel {
+            position: fixed;
+            top: 30px;
+            left: 20px;
+            background: white;
+            padding: 10px;
+            z-index: 1000;
+            border-radius: 10px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+            font-family: monospace;
+            font-size: 15px;
+        }
+.search-panel h3 
+{
+    text-align: center;
+    font-size: 18px;
+    font-family: monospace;
+    margin: 0 0 10px 0;
+}
+
+.search-panel select, 
+.search-panel option {
+  font-family: monospace;
+  font-size: 14px;
+  margin-bottom: 10px; 
+  padding: 5px;  
+}
+
+/* Mobile toggle button */
+.toggle-button {
+    display: none;
+    position: fixed;
+    top: 30px;
+    left: 20px;
+    padding: 8px 10px;
+    border-radius: 5px;
+    font-size: 18px;
+    cursor: pointer;
+    z-index: 1100;
+}
+
+/* Hide panel on small screens initially */
+@media (max-width: 768px) {
+    .search-panel {
+        transform: translateX(-110%);
+    }
+
+    .search-panel.open {
+        transform: translateX(0);
+    }
+
+    .toggle-button {
+        display: block;
+    }
+}
+
+    </style>
+</head>
+<body>
+
+<div id="map"></div>
+
+<div class="toggle-button" onclick="toggleSearchPanel()" style=" color: #333;
+  text-align: center; box-shadow: 0 2px 6px rgba(0,0,0,0.2); background-color: #ffffff;">☰</div>
+
+<div class="search-panel">
+    <h3>Find a Room</h3>
+    <select id="roomSearch"></select >
+    <button onclick="showRoom()" style="padding: 5px; border-radius: 5px; border: 1px solid #ccc; font-family: monospace;">Search</button>
+    <button onclick="goBack()" style="padding: 5px; border-radius: 5px; border: 1px solid #ccc; font-family: monospace;">Back to Map</button>
+</div>
+
+<script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+<script>
+
+let highlightRect;
+
+    const map = L.map('map', {
+    crs: L.CRS.Simple,
+    zoomControl: false,
+    scrollWheelZoom: false,
+    doubleClickZoom: false,
+    touchZoom: false,
+    boxZoom: false,
+    dragging: false
+
+});
+
+const bounds = [[0,0], [1000, 1500]];
+const image = L.imageOverlay('mabinibuilding.jpg', bounds).addTo(map);
+
+map.setView([500, 750], 0); // Center view, no zoom
+
+    const rooms = [
+        { name: '1ST FLOOR', coords: [190, 150] }, 
+        { name: 'Office University Registrar', coords: [220, 470], bounds: [ [280, 402], [147, 607] ] },
+        { name: 'Registrar Office', coords: [210, 830], bounds: [ [280, 625], [147, 1055] ] },
+        { name: 'Treasury Office', coords: [210, 1155], bounds: [ [280, 1073], [147, 1263] ] },
+
+        { name: '2ND FLOOR', coords: [435, 150] },
+        { name: 'Office of OSA Directors', coords: [475, 470], bounds: [ [530, 398], [396, 552] ] },
+        { name: 'Center Guidance', coords: [455, 638], bounds: [ [530, 572], [396, 728] ] },
+        { name: 'Office of Students Affairs', coords: [475, 815], bounds: [ [530, 748], [396, 914] ] },
+        { name: 'CIPA Affairs', coords: [455, 1020], bounds: [ [530, 934], [396, 1100] ] }, 
+        { name: 'Command Center', coords: [455, 1185], bounds: [ [530, 1120], [396, 1263] ] },  
+
+        { name: '3RD FLOOR', coords: [690, 150] },
+        { name: 'University Student Council Office', coords: [730, 465], bounds: [ [788, 398], [655, 552] ] },
+        { name: 'The Warden Publication', coords: [725, 655], bounds: [ [788, 572], [655, 728] ] }, 
+        { name: 'Cultural Hall', coords: [715, 827], bounds: [ [788, 748], [655, 914] ] }, 
+        { name: 'PLMun Chorale', coords: [715, 1015], bounds: [ [788, 934], [655, 1100] ] }, 
+        { name: 'Reserve Officers', coords: [715, 1176], bounds: [ [788, 1120], [655, 1263] ] }, 
+    ];
+
+    rooms.forEach(room => {
+    let displayName = room.name.replace(/&nbsp;/g, ' ');
+
+    const customSplits = {
+       'Office University Registrar': 'Office<br>University Registrar',
+
+       'Office of OSA Directors': 'Office<br>of<br>OSA Directors',
+       'Office of Students Affairs': 'Office<br>of<br>Students Affairs',
+
+       'University Student Council Office': 'University<br>Student Council<br>Office',
+       'The Warden Publication': 'The Warden<br>Publication'
+    };
+
+    if (customSplits[displayName]) {
+        displayName = customSplits[displayName];
+    }
+
+    if (['1ST FLOOR', '2ND FLOOR', '3RD FLOOR', '4TH FLOOR'].includes(room.name)) {
+        displayName = `<div style="font-weight: 900; font-size: 18px; color:black; font-family:monospace; text-align:center;">${displayName}</div>`;
+    } else {
+        displayName = `<div class="label-icon">${displayName}</div>`;
+    }
+
+    L.marker(room.coords, {
+        icon: L.divIcon({
+            html: displayName,
+            className: '',
+            iconSize: [100, 30],
+            iconAnchor: [50, 15]
+        })
+    }).addTo(map);
+});
+
+function showRoom() {
+    const roomKey = document.getElementById('roomSearch').value;
+    if (!roomKey) return;
+
+    const room = rooms.find(r => r.name === roomKey);
+    if (!room) {
+        alert('Room not found.');
+        return;
+    }
+
+    if (highlightRect) {
+        map.removeLayer(highlightRect);
+    }
+
+    if (room.bounds) {
+        highlightRect = L.rectangle(room.bounds, {
+            color: 'blue',
+            weight: 2
+        }).addTo(map);
+    } 
+
+    L.popup({
+    offset: [-10, -10]  
+})
+    .setLatLng(room.coords)
+    .setContent(`<b>${room.name}</b><br>This is the room you searched.`)
+    .openOn(map);
+
+}
+
+const select = document.getElementById('roomSearch');
+rooms.sort((a, b) => a.name.localeCompare(b.name)).forEach(room => {
+    // Skip if room is a floor label
+    if (['1ST FLOOR', '2ND FLOOR', '3RD FLOOR', '4TH FLOOR'].includes(room.name)) return;
+
+    const option = document.createElement('option');
+    option.value = room.name;
+    option.textContent = room.name.replace(/&nbsp;/g, ' ');
+    select.appendChild(option);
+});
+
+function toggleSearchPanel() {
+    const panel = document.querySelector('.search-panel');
+    panel.classList.toggle('open');
+}
+
+function goBack() {
+    window.location.href = 'indoor_map.php';  // replace with your actual file name
+}
+
+</script>
+
+</body>
+</html>

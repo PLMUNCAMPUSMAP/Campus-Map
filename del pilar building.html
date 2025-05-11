@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Del Pilar Building</title>
+    <meta charset="utf-8" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+    <style>
+
+        #map {
+    width: 1500px;
+    height: 1000px;
+    margin: 20px auto;
+    border: 1px solid #ccc;
+}
+.label-icon {
+    font-size: 15px;
+    font-weight: bold;
+    font-family: monospace;
+    color: black;
+    background: transparent;
+    border: none;
+    padding: 0;
+    margin: 0;
+    text-shadow: 1px 1px 2px white;
+    line-height: 1.2;
+    white-space: nowrap;
+    text-align: center;
+    display: inline-block;
+   
+
+}
+.leaflet-div-icon {
+    background: transparent !important;
+    border: none !important;
+}
+.search-panel {
+            position: fixed;
+            top: 30px;
+            left: 20px;
+            background: white;
+            padding: 10px;
+            z-index: 1000;
+            border-radius: 10px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+            font-family: monospace;
+            font-size: 15px;
+        }
+.search-panel h3 
+{
+    text-align: center;
+    font-size: 18px;
+    font-family: monospace;
+    margin: 0 0 10px 0;
+}
+
+.search-panel select, 
+.search-panel option {
+  font-family: monospace;
+  font-size: 14px;
+  margin-bottom: 10px; 
+  padding: 5px;  
+}
+
+/* Mobile toggle button */
+.toggle-button {
+    display: none;
+    position: fixed;
+    top: 30px;
+    left: 20px;
+    padding: 8px 10px;
+    border-radius: 5px;
+    font-size: 18px;
+    cursor: pointer;
+    z-index: 1100;
+}
+
+/* Hide panel on small screens initially */
+@media (max-width: 768px) {
+    .search-panel {
+        transform: translateX(-110%);
+    }
+
+    .search-panel.open {
+        transform: translateX(0);
+    }
+
+    .toggle-button {
+        display: block;
+    }
+}
+
+    </style>
+</head>
+<body>
+
+<div id="map"></div>
+
+<div class="toggle-button" onclick="toggleSearchPanel()" style=" color: #333;
+  text-align: center; box-shadow: 0 2px 6px rgba(0,0,0,0.2); background-color: #ffffff;">☰</div>
+
+<div class="search-panel">
+    <h3>Find a Room</h3>
+    <select id="roomSearch"></select >
+    <button onclick="showRoom()" style="padding: 5px; border-radius: 5px; border: 1px solid #ccc; font-family: monospace;">Search</button>
+    <button onclick="goBack()" style="padding: 5px; border-radius: 5px; border: 1px solid #ccc; font-family: monospace;">Back to Map</button>
+</div>
+
+<script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+<script>
+
+let highlightRect;
+
+    const map = L.map('map', {
+    crs: L.CRS.Simple,
+    zoomControl: false,
+    scrollWheelZoom: false,
+    doubleClickZoom: false,
+    touchZoom: false,
+    boxZoom: false,
+    dragging: false
+
+});
+
+const bounds = [[0,0], [1000, 1500]];
+const image = L.imageOverlay('delpilarbuilding.jpg', bounds).addTo(map);
+
+map.setView([500, 750], 0); // Center view, no zoom
+
+const rooms = [
+        { name: '1ST FLOOR', coords: [130, 190] }, 
+        { name: 'Asst VPAA', coords: [180, 458], bounds: [ [205, 387], [150, 460] ] },
+        { name: 'Board Room', coords: [90, 455], bounds: [ [118, 387], [60, 462] ] },
+        { name: 'Finance', coords: [170, 528], bounds: [ [205, 470], [150, 540] ] },
+        { name: 'Dean CCJ', coords: [80, 525], bounds: [ [118,  470], [60, 540] ] },
+        { name: 'President Office', coords: [180, 597], bounds: [ [205, 550], [150, 619] ] },
+        { name: 'VPSLAD', coords: [80, 610], bounds: [ [118, 550], [60, 619] ] },
+        { name: 'President Lounge', coords: [180, 675], bounds: [ [205, 628], [150, 698] ] },
+        { name: 'VPAA', coords: [80, 700], bounds: [ [118, 628], [60, 698] ] },
+        { name: 'OUP Staff', coords: [170, 760], bounds: [ [205, 707], [150, 785] ] },
+        { name: 'President Emiritus', coords: [90, 760], bounds: [ [118, 707], [60, 785] ] },
+        { name: 'Prayer Room', coords: [180, 855], bounds: [ [205, 793], [150, 863] ] },
+        { name: 'Canteen', coords: [170, 1135], bounds: [ [205, 952], [150, 1275] ] },
+        { name: 'Emerald Hall', coords: [85, 1115], bounds: [ [118, 950], [60, 1275] ] },
+
+        { name: '2ND FLOOR', coords: [320, 190] },
+        { name: 'Com Lab 5', coords: [360, 480], bounds: [ [395, 386], [338, 540] ] },
+        { name: 'Stock Room', coords: [280, 455], bounds: [ [307, 386], [248, 460] ] },
+        { name: 'Com Lab 6', coords: [360, 640], bounds: [ [395, 550], [338, 698] ] },
+        { name: 'Room 217', coords: [270, 565], bounds: [ [307, 470], [248, 619] ] },
+        { name: 'Room 218', coords: [360, 800], bounds: [ [395, 707], [338, 863] ] },
+        { name: 'Room 219', coords: [270, 720], bounds: [ [307, 628], [248, 785] ] },
+        { name: 'Room 221', coords: [270, 890], bounds: [ [307, 793], [248, 948] ] },
+        { name: 'Room 220', coords: [360, 1050], bounds: [ [395, 952], [338, 1111] ] },
+        { name: 'Room 223', coords: [270, 1050], bounds: [ [307, 952], [248, 1112] ] },
+        { name: 'Room 222', coords: [360, 1210], bounds: [ [395, 1118], [338, 1275] ] },
+        { name: 'Room 224', coords: [270, 1210], bounds: [ [307, 1118], [248, 1275] ] },
+
+        { name: '3RD FLOOR', coords: [500, 190] },
+        { name: 'Room 316', coords: [540, 480], bounds: [ [575, 386], [520, 540] ] },
+        { name: 'Faculty CBA', coords: [460, 445], bounds: [ [488, 386], [430, 460] ] },
+        { name: 'Room 318', coords: [540, 640], bounds: [ [575, 550], [520, 698] ] },
+        { name: 'Room 315', coords: [455, 565], bounds: [ [488, 470], [430, 619] ] },
+        { name: 'CBA Office', coords: [540, 800], bounds: [ [575, 707], [520, 863] ] },
+        { name: 'Room 317', coords: [455, 720], bounds: [ [488, 628], [430, 785] ] },
+        { name: 'Room 319', coords: [455, 885], bounds: [ [488, 793], [430, 946] ] },
+        { name: 'Room 321', coords: [540, 1050], bounds: [ [575, 952], [520, 1111] ] },
+        { name: 'Health and Fitness Room', coords: [460, 1010], bounds: [ [488, 952], [430, 1112] ] },
+        { name: 'Room 324', coords: [540, 1210], bounds: [ [575, 1118], [520, 1275] ] },
+        { name: 'Room 323', coords: [455, 1210], bounds: [ [488, 1118], [430, 1275] ] },
+
+        { name: '4TH FLOOR', coords: [680, 190] },
+        { name: 'Biology Lab', coords: [720, 470], bounds: [ [758, 386], [700, 540] ] },
+        { name: 'CTE Student Council', coords: [650, 447], bounds: [ [670, 386], [610, 460] ] },
+        { name: 'Room 416', coords: [635, 565], bounds: [ [670, 470], [610, 619] ] },
+        { name: 'Physics Lab', coords: [720, 630], bounds: [ [758, 550], [700, 698] ] },
+        { name: 'Hiraya Dance Hall', coords: [635, 690], bounds: [ [670, 628], [610, 785] ] },
+        { name: 'Chemistry Lab', coords: [720, 780], bounds: [ [758, 707], [700, 863] ] },
+        { name: 'Room 419', coords: [635, 885], bounds: [ [670, 793], [610, 946] ] },
+        { name: 'Room 420', coords: [720, 1050], bounds: [ [758, 952], [700, 1111] ] },
+        { name: 'Room 421', coords: [635, 1050], bounds: [ [670, 952], [610, 1112] ] },
+        { name: 'Room 422', coords: [720, 1210], bounds: [ [758, 1118], [700, 1275] ] },
+        { name: 'Room 423', coords: [635, 1210], bounds: [ [670, 1118], [610, 1275] ] },
+
+        { name: '5TH FLOOR', coords: [860, 190] },
+        { name: 'Room 510', coords: [900, 480], bounds: [ [939, 386], [882, 540] ] },
+        { name: 'Room 505', coords: [815, 480], bounds: [ [850, 386], [793, 540] ] },
+        { name: 'Room 509', coords: [900, 640], bounds: [ [939, 550], [882, 698] ] },
+        { name: 'Room 504', coords: [815, 640], bounds: [ [850, 550], [793, 698] ] },
+        { name: 'Room 508', coords: [900, 800], bounds: [ [939, 707], [882, 863] ] },
+        { name: 'Room 503', coords: [815, 800], bounds: [ [850, 707], [793, 863] ] },
+        { name: 'Room 507', coords: [900, 970], bounds: [ [939, 870], [882, 1029] ] },
+        { name: 'Room 502', coords: [815, 970], bounds: [ [850, 870], [793, 1029] ] },
+        { name: 'Room 506', coords: [900, 1130], bounds: [ [939, 1035], [882, 1190] ] },
+        { name: 'Room 501', coords: [815, 1130], bounds: [ [850, 1035], [793, 1190] ] },
+        { name: 'CCJ OJT Office', coords: [833, 1260], bounds: [ [850, 1200], [793, 1274] ] },
+
+    ]
+
+    rooms.forEach(room => {
+    let displayName = room.name.replace(/&nbsp;/g, ' ');
+
+    const customSplits = {
+       'Stock Room': 'Stock<br>Room',
+       'Asst VPAA': 'Asst<br>VPAA',
+       'Faculty CBA': 'Faculty<br>CBA',
+       'President Emiritus': 'President<br>Emiritus',
+       'Board Room': 'Board<br>Room',
+       'President Office': 'President<br>Office',
+       'President Lounge': 'President<br>Lounge',
+       'Prayer Room': 'Prayer<br>Room',
+       'Health and Fitness Room': 'Health and Fitness<br>Room',
+       'CTE Student Council': 'CTE<br>Student<br>Council',
+       'CCJ OJT Office': 'CCJ<br>OJT<br>Office',
+    };
+
+    if (customSplits[displayName]) {
+        displayName = customSplits[displayName];
+    }
+
+    if (['1ST FLOOR', '2ND FLOOR', '3RD FLOOR', '4TH FLOOR', '5TH FLOOR'].includes(room.name)) {
+        displayName = `<div style="font-weight: 900; font-size: 18px; color:black; font-family:monospace; text-align:center;">${displayName}</div>`;
+    } else {
+        displayName = `<div class="label-icon">${displayName}</div>`;
+    }
+
+    L.marker(room.coords, {
+        icon: L.divIcon({
+            html: displayName,
+            className: '',
+            iconSize: [100, 30],
+            iconAnchor: [50, 15]
+        })
+    }).addTo(map);
+});
+
+function showRoom() {
+    const roomKey = document.getElementById('roomSearch').value;
+    if (!roomKey) return;
+
+    const room = rooms.find(r => r.name === roomKey);
+    if (!room) {
+        alert('Room not found.');
+        return;
+    }
+
+    if (highlightRect) {
+        map.removeLayer(highlightRect);
+    }
+
+    if (room.bounds) {
+        highlightRect = L.rectangle(room.bounds, {
+            color: 'blue',
+            weight: 2
+        }).addTo(map);
+    } 
+
+    L.popup({
+    offset: [-10, -10]  
+})
+    .setLatLng(room.coords)
+    .setContent(`<b>${room.name}</b><br>This is the room you searched.`)
+    .openOn(map);
+
+}
+
+const select = document.getElementById('roomSearch');
+rooms.sort((a, b) => a.name.localeCompare(b.name)).forEach(room => {
+    // Skip if room is a floor label
+    if (['1ST FLOOR', '2ND FLOOR', '3RD FLOOR', '4TH FLOOR', '5TH FLOOR'].includes(room.name)) return;
+
+    const option = document.createElement('option');
+    option.value = room.name;
+    option.textContent = room.name.replace(/&nbsp;/g, ' ');
+    select.appendChild(option);
+});
+
+function toggleSearchPanel() {
+    const panel = document.querySelector('.search-panel');
+    panel.classList.toggle('open');
+}
+
+function goBack() {
+    window.location.href = 'indoor_map.php';  // replace with your actual file name
+}
+
+</script>
+
+</body>
+</html>

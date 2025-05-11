@@ -1,0 +1,32 @@
+<?php
+session_start();
+include 'db.php';
+
+if (isset($_POST['username']) && isset($_POST['password'])) {
+    $username = $_POST['username'];
+    $password = $_POST['password'];
+
+    $stmt = $conn->prepare("SELECT user_id, password_hash, role FROM users WHERE username = ?");
+    $stmt->bind_param("s", $username);
+    $stmt->execute();
+    $stmt->store_result();
+    $stmt->bind_result($user_id, $password_hash, $role);
+
+    if ($stmt->fetch() && password_verify($password, $password_hash)) {
+        $_SESSION['user_id'] = $user_id;
+        $_SESSION['username'] = $username;
+        $_SESSION['role'] = $role;
+
+        if ($role == 'admin') {
+            header("Location: admin.php");
+        } else {
+            header("Location: indoor_map.php");
+        }
+        exit();
+    } else {
+        echo "<script>alert('Invalid credentials.'); window.location.href='index.php';</script>";
+    }
+} else {
+    echo "<script>alert('Please fill in both fields.'); window.location.href='index.php';</script>";
+}
+?>

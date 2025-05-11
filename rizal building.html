@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Rizal Building</title>
+    <meta charset="utf-8" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+    <style>
+
+        #map {
+    width: 1500px;
+    height: 1000px;
+    margin: 20px auto;
+    border: 1px solid #ccc;
+}
+.label-icon {
+    font-size: 15px;
+    font-weight: bold;
+    font-family: monospace;
+    color: black;
+    background: transparent;
+    border: none;
+    padding: 0;
+    margin: 0;
+    text-shadow: 1px 1px 2px white;
+    line-height: 1.2;
+    white-space: nowrap;
+    text-align: center;
+    display: inline-block;
+   
+
+}
+.leaflet-div-icon {
+    background: transparent !important;
+    border: none !important;
+}
+        .search-panel {
+            position: fixed;
+            top: 30px;
+            left: 20px;
+            background: white;
+            padding: 10px;
+            z-index: 1000;
+            border-radius: 10px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+            font-family: monospace;
+            font-size: 15px;
+        }
+.search-panel h3 
+{
+    text-align: center;
+    font-size: 18px;
+    font-family: monospace;
+    margin: 0 0 10px 0;
+}
+
+.search-panel select, 
+.search-panel option {
+  font-family: monospace;
+  font-size: 14px;
+  margin-bottom: 10px; 
+  padding: 5px;  
+}
+
+/* Mobile toggle button */
+.toggle-button {
+    display: none;
+    position: fixed;
+    top: 30px;
+    left: 20px;
+    padding: 8px 10px;
+    border-radius: 5px;
+    font-size: 18px;
+    cursor: pointer;
+    z-index: 1100;
+}
+
+/* Hide panel on small screens initially */
+@media (max-width: 768px) {
+    .search-panel {
+        transform: translateX(-110%);
+    }
+
+    .search-panel.open {
+        transform: translateX(0);
+    }
+
+    .toggle-button {
+        display: block;
+    }
+}
+
+    </style>
+</head>
+<body>
+
+<div id="map"></div>
+
+<div class="toggle-button" onclick="toggleSearchPanel()" style=" color: #333;
+  text-align: center; box-shadow: 0 2px 6px rgba(0,0,0,0.2); background-color: #ffffff;">☰</div>
+
+<div class="search-panel">
+    <h3>Find a Room</h3>
+    <select id="roomSearch"></select>
+    <button onclick="showRoom()" style="padding: 5px; border-radius: 5px; border: 1px solid #ccc; font-family: monospace;">Search</button>
+    <button onclick="goBack()" style="padding: 5px; border-radius: 5px; border: 1px solid #ccc; font-family: monospace;">Back to Map</button>
+</div>
+
+<script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+<script>
+
+let highlightRect;
+let activePopups = [];
+
+    const map = L.map('map', {
+    crs: L.CRS.Simple,
+    zoomControl: false,
+    scrollWheelZoom: false,
+    doubleClickZoom: false,
+    touchZoom: false,
+    boxZoom: false,
+    dragging: false
+
+});
+
+const bounds = [[0,0], [1000, 1500]];
+const image = L.imageOverlay('rizalbuilding.jpg', bounds).addTo(map);
+
+map.setView([500, 750], 0); // Center view, no zoom
+
+    const rooms = [
+        { name: '1ST FLOOR', coords: [230, 100] },
+        { name: 'Innovation Hub', coords: [233, 359], bounds: [ [276, 297], [182, 403] ] },
+        { name: 'University Learning Resources Center/Library', coords: [225, 650], bounds: [ [276, 412], [182, 1133] ] },
+        { name: 'Maintenance & Housekeeping', coords: [242, 1188], bounds: [ [276, 1140], [182, 1235] ] },
+        { name: 'CR (BOYS)', coords: [235, 1302], bounds: [ [276, 1245], [182, 1307] ] },
+        { name: 'CR (GIRLS)', coords: [235, 1363], bounds: [ [276, 1315], [182, 1369] ] },
+
+        { name: '2ND FLOOR', coords: [420, 100] },
+        { name: 'Emerald Review Center', coords: [433, 355], bounds: [ [475, 295], [381, 426] ] },
+        { name: 'College of Law Classroom', coords: [449, 495], bounds: [ [475, 435], [381, 530] ] },
+        { name: 'GAD Office', coords: [433, 620],bounds: [ [475, 540], [381, 651] ] },
+        { name: 'College of Law Classroom', coords: [449, 720], bounds: [ [475, 660], [381, 755] ] },
+        { name: 'CCJ Faculty Office', coords: [440, 835], bounds: [ [475, 763], [381, 864] ] },
+        { name: 'Dean Office', coords: [423, 940], bounds: [ [475, 875], [381, 995] ] },
+        { name: 'Graduate Studies', coords: [432, 1075], bounds: [ [475, 1005], [381, 1110] ] }, 
+        { name: 'HR Office', coords: [433, 1208], bounds: [ [475, 1120], [381, 1242] ] },
+        { name: 'Faculty CR', coords: [430, 1299], bounds: [ [475, 1250], [381, 1307] ] },
+        { name: 'Faculty CR', coords: [430, 1363], bounds: [ [475, 1315], [381, 1369] ] },
+        
+        { name: '3RD FLOOR', coords: [630, 100] },
+        { name: 'Melchora Aquino Hall', coords: [635, 349], bounds: [ [680, 295], [586, 426] ] }, 
+        { name: 'Gabriela Silang Hall', coords: [637, 488], bounds: [ [680, 435], [586, 530] ] },
+        { name: 'Josefa Escoda Hall', coords: [635, 591], bounds: [ [680, 540], [586, 651] ] },
+        { name: 'Sultan Kudarat Hall', coords: [645, 730], bounds: [ [680, 660], [586, 755] ] }, 
+        { name: 'Gregorio Del Pilar Hall', coords: [646, 826], bounds: [ [680, 763], [586, 864] ] }, 
+        { name: 'Gomburza Hall', coords: [630, 931], bounds: [ [680, 875], [585, 995] ] }, 
+        { name: 'Antonio Luna Hall', coords: [638, 1058], bounds: [ [680, 1005], [585, 1110] ] }, 
+        { name: 'Graciano Lopez-Jaena Hall', coords: [645, 1185], bounds: [ [680, 1120], [585, 1242] ] }, 
+        { name: 'CR (BOYS)', coords: [638, 1305], bounds: [ [680, 1250], [585, 1307] ] },
+        { name: 'CR (GIRLS)', coords: [638, 1363], bounds: [ [680, 1315], [585, 1369] ] },
+        
+        { name: '4TH FLOOR', coords: [830, 100] },
+    ];
+
+    rooms.forEach(room => {
+    let displayName = room.name.replace(/&nbsp;/g, ' ');
+
+    const customSplits = {
+        'Innovation Hub': 'Innovation<br>Hub',
+        'Maintenance & Housekeeping': 'Maintenance<br>&<br>Housekeeping',
+
+        'Emerald Review Center': 'Emerald<br>Review Center',
+        'College of Law Classroom': 'College<br>of<br>Law<br>Classroom',
+        'GAD Office': 'GAD<br>Office',
+        'CCJ Faculty Office': 'CCJ<br>Faculty<br>Office',
+        'Graduate Studies': 'Graduate<br>Studies',
+        'HR Office': 'HR<br>Office',
+        'Faculty CR': 'Faculty<br>CR',
+
+        'Melchora Aquino Hall': 'Melchora Aquino<br>Hall',
+        'Gabriela Silang Hall': 'Gabriela<br>Silang Hall',
+        'Josefa Escoda Hall': 'Josefa Escoda<br>Hall',
+        'Sultan Kudarat Hall': 'Sultan<br>Kudarat<br>Hall',
+        'Gregorio Del Pilar Hall': 'Gregorio<br>Del Pilar<br>Hall',
+        'Antonio Luna Hall': 'Antonio Luna<br>Hall',
+        'Graciano Lopez-Jaena Hall': 'Graciano<br>Lopez-Jaena<br>Hall',
+        'CR (BOYS)': 'CR<br>(BOYS)',
+        'CR (GIRLS)': 'CR<br>(GIRLS)',
+    };
+
+    if (customSplits[displayName]) {
+        displayName = customSplits[displayName];
+    }
+
+    if (['1ST FLOOR', '2ND FLOOR', '3RD FLOOR', '4TH FLOOR'].includes(room.name)) {
+        displayName = `<div style="font-weight: 900; font-size: 18px; color:black; font-family:monospace; text-align:center;">${displayName}</div>`;
+    } else {
+        displayName = `<div class="label-icon">${displayName}</div>`;
+    }
+
+    L.marker(room.coords, {
+        icon: L.divIcon({
+            html: displayName,
+            className: '',
+            iconSize: [100, 30],
+            iconAnchor: [50, 15]
+        })
+    }).addTo(map);
+});
+
+function showRoom() {
+    const roomKey = document.getElementById('roomSearch').value;
+    if (!roomKey) return;
+
+    const matchedRooms = rooms.filter(r => r.name === roomKey);
+    if (matchedRooms.length === 0) {
+        alert('Room not found.');
+        return;
+    }
+
+    // Remove previous highlights
+    if (highlightRect) {
+        if (Array.isArray(highlightRect)) {
+            highlightRect.forEach(r => map.removeLayer(r));
+        } else {
+            map.removeLayer(highlightRect);
+        }
+    }
+    highlightRect = [];
+
+    // Remove previous popups
+    activePopups.forEach(popup => map.removeLayer(popup));
+    activePopups = [];
+
+    if (roomKey === 'Faculty CR') {
+        // Compute midpoint between the Faculty CR rooms
+        const latSum = matchedRooms.reduce((sum, r) => sum + r.coords[0], 0);
+        const lngSum = matchedRooms.reduce((sum, r) => sum + r.coords[1], 0);
+        const centerLat = latSum / matchedRooms.length;
+        const centerLng = lngSum / matchedRooms.length;
+
+        // One popup at midpoint
+        const popup = L.popup({ offset: [-10, -10] })
+            .setLatLng([centerLat, centerLng])
+            .setContent(`<b>Faculty CR</b><br>There are ${matchedRooms.length} locations.`)
+            .addTo(map);
+        activePopups.push(popup);
+
+        // Highlight rectangles if any
+        matchedRooms.forEach(room => {
+            if (room.bounds) {
+                const rect = L.rectangle(room.bounds, {
+                    color: 'blue',
+                    weight: 2
+                }).addTo(map);
+                highlightRect.push(rect);
+            }
+        });
+
+    } else {
+        // Multiple popups for other rooms (including CR (BOYS) and CR (GIRLS))
+        matchedRooms.forEach(room => {
+            if (room.bounds) {
+                const rect = L.rectangle(room.bounds, {
+                    color: 'blue',
+                    weight: 2
+                }).addTo(map);
+                highlightRect.push(rect);
+            }
+
+            // Multiple popups via addTo()
+            const popup = L.popup({ offset: [-10, -10] })
+                .setLatLng(room.coords)
+                .setContent(`<b>${room.name}</b><br>This is the room you searched.`)
+                .addTo(map);
+            activePopups.push(popup);
+        });
+    }
+}
+
+const select = document.getElementById('roomSearch');
+const uniqueRoomNames = new Set();
+
+// Populate unique room names
+rooms.forEach(room => {
+    // Skip floor labels
+    if (['1ST FLOOR', '2ND FLOOR', '3RD FLOOR', '4TH FLOOR'].includes(room.name)) return;
+
+    uniqueRoomNames.add(room.name);
+});
+
+// Sort and append
+Array.from(uniqueRoomNames).sort().forEach(name => {
+    const option = document.createElement('option');
+    option.value = name;
+    option.textContent = name.replace(/&nbsp;/g, ' ');
+    select.appendChild(option);
+});
+
+function toggleSearchPanel() {
+    const panel = document.querySelector('.search-panel');
+    panel.classList.toggle('open');
+}
+
+function goBack() {
+    window.location.href = 'indoor_map.php';  // replace with your actual file name
+}
+
+</script>
+
+</body>
+</html>
