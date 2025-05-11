@@ -1,6 +1,6 @@
 <?php
 session_start();
-include 'db.php';
+include 'db.html';
 
 // Check if logged in and if user is an admin
 if (!isset($_SESSION['user_id']) || $_SESSION['role'] != 'admin') {
@@ -40,7 +40,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['add_user'])) {
 
     if ($stmt->num_rows > 0) {
         // Username already exists
-        echo "<script>alert('Username already exists.'); window.location.href='admin.php';</script>";
+        echo "<script>alert('Username already exists.'); window.location.href='admin.html';</script>";
         exit();
     }
 
@@ -48,7 +48,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['add_user'])) {
     $stmt = $conn->prepare("INSERT INTO users (username, password_hash, role) VALUES (?, ?, ?)");
     $stmt->bind_param("sss", $new_username, $new_password, $new_role);
     $stmt->execute();
-    echo "<script>alert('New user added successfully.'); window.location.href='admin.php';</script>";
+    echo "<script>alert('New user added successfully.'); window.location.href='admin.html';</script>";
 }
 
 
@@ -147,10 +147,10 @@ $result = $conn->query("SELECT user_id, username, role, created_at FROM users");
             <td><?= $row['created_at'] ?></td>
             <td>
                 <?php if ($row['role'] == 'user'): ?>
-                    <a href="admin.php?promote=<?= $row['user_id'] ?>">Promote</a> |
+                    <a href="admin.html?promote=<?= $row['user_id'] ?>">Promote</a> |
                 <?php endif; ?>
-                <a href="edit_user.php?edit=<?= $row['user_id'] ?>">Edit</a> |
-                <a href="admin.php?delete=<?= $row['user_id'] ?>" onclick="return confirm('Delete this user?')">Delete</a>
+                <a href="edit_user.html?edit=<?= $row['user_id'] ?>">Edit</a> |
+                <a href="admin.html?delete=<?= $row['user_id'] ?>" onclick="return confirm('Delete this user?')">Delete</a>
             </td>
         </tr>
     <?php endwhile; ?>
@@ -167,7 +167,7 @@ $result = $conn->query("SELECT user_id, username, role, created_at FROM users");
     <button type="submit" name="add_user">Add User</button>
 </form>
 
-<a class="logout-link" href="logout.php">Logout</a>
+<a class="logout-link" href="logout.html">Logout</a>
 
 </body>
 </html>
