@@ -1,6 +1,6 @@
 <?php
 session_start();
-include 'db.php';
+include 'db.html';
 
 if (isset($_POST['username']) && isset($_POST['password'])) {
     $username = $_POST['username'];
@@ -18,15 +18,15 @@ if (isset($_POST['username']) && isset($_POST['password'])) {
         $_SESSION['role'] = $role;
 
         if ($role == 'admin') {
-            header("Location: admin.php");
+            header("Location: admin.html");
         } else {
-            header("Location: indoor_map.php");
+            header("Location: indoor_map.html");
         }
         exit();
     } else {
-        echo "<script>alert('Invalid credentials.'); window.location.href='index.php';</script>";
+        echo "<script>alert('Invalid credentials.'); window.location.href='index.html';</script>";
     }
 } else {
-    echo "<script>alert('Please fill in both fields.'); window.location.href='index.php';</script>";
+    echo "<script>alert('Please fill in both fields.'); window.location.href='index.html';</script>";
 }
 ?>
